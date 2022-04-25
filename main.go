@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"gin-starter/src/api/logger"
 	"gin-starter/src/routers"
 	"log"
 	"net/http"
@@ -20,29 +21,57 @@ func main() {
 	// Log To File (if you use it your log don't show in your console)
 	// f, _ := os.Create("gin.log")
 	// gin.DefaultWriter = io.MultiWriter(f)
-
-	r := gin.Default()
+	r1 := gin.Default()
+	// serve static files
+	r1.Static("/assets", "./assets")
+	r1.StaticFS("/more_static", http.Dir("my_file_system"))
+	r1.StaticFile("/favicon.ico", "./resources/favicon.ico")
 	// Custum Log (upper line remove then replace down line)
-	// r := gin.New()
-	// r = logger.Logger(r)
+	r2 := gin.New()
+	r2 = logger.Logger(r2)
+	// second http handler
+	r2.Use(gin.Logger())
+	r2.Use(gin.Recovery())
+	r2.GET("/", func(c *gin.Context) {
+		c.JSON(
+			http.StatusOK,
+			gin.H{
+				"code":    http.StatusOK,
+				"message": "Welcome server 01",
+			},
+		)
+	})
 
 	// Load HTML Template with Glob
-	r.LoadHTMLGlob("templates/**/*")
+	r1.LoadHTMLGlob("templates/**/*")
 	//router.LoadHTMLFiles("templates/template1.html", "templates/template2.html")
 
 	// Get Routes
-	r = routers.Router(r)
+	r1 = routers.Router(r1)
 
-	s := &http.Server{
+	s1 := &http.Server{
 		Addr:           ":" + PORT,
-		Handler:        r,
+		Handler:        r1,
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
+	s2 := &http.Server{
+		Addr:         ":8081",
+		Handler:      r2,
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	go func() {
+		if err := s2.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("listen: %s\n", err)
+		}
+	}()
+
 	// graceful shutdown
 	go func() {
-		if err := s.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := s1.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
 	}()
@@ -54,7 +83,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := s.Shutdown(ctx); err != nil {
+	if err := s1.Shutdown(ctx); err != nil {
 		log.Fatal("Server Shutdon: ", err)
 	}
 	select {
