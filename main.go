@@ -48,7 +48,8 @@ func main() {
 
 	// Get Routes
 	r1 = routers.Router(r1)
-
+	// r1.Use(cors.New(cors.Config{AllowAllOrigins: true, AllowedMethods: []string{"GET", "POST"}}))
+	// r2.Use(cors.New(cors.Config{AllowAllOrigins: true, AllowedMethods: []string{"GET", "POST"}}))
 	s1 := &http.Server{
 		Addr:           ":" + PORT,
 		Handler:        r1,

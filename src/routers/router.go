@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -25,6 +26,7 @@ func Router(r *gin.Engine) *gin.Engine {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		v.RegisterValidation("bookableValidator", validators.BookableValidator)
 	}
+	r.Use(cors.New(cors.Config{AllowAllOrigins: true, AllowedMethods: []string{"GET", "POST"}}))
 	// Test API
 	r.GET("/", func(c *gin.Context) { time.Sleep(1 * time.Second); c.String(http.StatusOK, "Welcome Gin Server") })
 	r.GET("/ping", ping.Pong)
